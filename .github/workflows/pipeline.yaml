@@ -67,11 +67,11 @@ jobs:
           name: jar-file
           path: app.jar
 
-      - name: Download Jar file
-        uses: actions/download-artifact@v3
-        with:
-          name: jar-file
-          path: app.jar
+      # - name: Download Jar file
+      #   uses: actions/download-artifact@v3
+      #   with:
+      #     name: jar-file
+      #     path: app.jar
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
