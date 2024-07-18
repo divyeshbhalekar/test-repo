@@ -1,0 +1,96 @@
+name: cicd-pipeline
+
+on:
+  push:
+    branches:
+      - master
+      - main
+      - 'new_branch'
+    tags:
+      - 'qa-*'
+      - 'prod-*'
+  pull_request:
+    branches:
+      - 'main'
+      - 'master'
+      - '**'
+    types:
+      - opened
+      - reopened
+      - edited
+
+env:
+  IMAGE: demo-application
+  REGISTRY_HOSTNAME: demodockeracc
+  # ARGOCD_TOKEN: ${{ secrets.ARGOCD_TOKEN }}
+  # REGISTRY_HOSTNAME: 681089424129.dkr.ecr.ap-south-1.amazonaws.com
+
+jobs:
+  Build_Artifact:
+    if: (github.ref == 'refs/heads/merge_branch' && github.event_name == 'push') || (github.ref == 'refs/heads/master' && github.event_name == 'push') || (github.ref == 'refs/heads/main' && github.event_name == 'push') || github.event_name == 'pull_request' || (startsWith(github.ref, 'refs/tags/qa-') && github.event_name == 'push') || (startsWith(github.ref, 'refs/tags/prod-') && github.event_name == 'push')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew clean build jacocoTestReport
+
+      # - name: SonarCloud Scan
+      #   env:
+      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      #   run: sonar-scanner
+
+      - name: Copy Jar file
+        run: mv build/libs/$(ls build/libs) app.jar
+
+      - name: Upload Jar file
+        uses: actions/upload-artifact@v3
+        with:
+          name: jar-file
+          path: app.jar
+
+      - name: Download Jar file
+        uses: actions/download-artifact@v3
+        with:
+          name: jar-file
+          path: app.jar
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          driver: docker
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            ${{ env.REGISTRY_HOSTNAME }}/${{ env.IMAGE }}
+          tags: |
+            type=sha,enable=true,prefix=,suffix=,format=short
+
+      - name: Docker build
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          push: false
+          tags: ${{ steps.meta.outputs.tags }}
+          build-args: |
+            TMDB_V3_API_KEY=${{ secrets.TMDB_V3_API_KEY }}
+          outputs: type=tar,dest=/tmp/${{ env.IMAGE }}.tar
