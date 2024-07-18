@@ -46,15 +46,15 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build with Gradle
-        run: ./gradlew build 
+        run: ./gradlew clean build jacocoTestReport
 
       # - name: SonarCloud Scan
       #   env:
       #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       #   run: sonar-scanner
 
-      - name: Copy Jar file
-        run: mv build/libs/$(ls build/libs) app.jar
+      # - name: Copy Jar file
+      #   run: mv build/libs/$(ls build/libs) app.jar
 
       - name: Upload Jar file
         uses: actions/upload-artifact@v3
