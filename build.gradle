@@ -16,11 +16,6 @@ repositories {
 
 bootJar {
 	launchScript()
-	manifest {
-		attributes(
-			'Main-Class': 'com.mystro.discovery.DiscoveryApplication'
-		)
-	}
 }
 
 ext {
@@ -46,9 +41,9 @@ publish {
 	dependsOn assemble
 }
 
-// bootJar {
-// 	launchScript()
-// }
+bootJar {
+	launchScript()
+}
 
 
 
