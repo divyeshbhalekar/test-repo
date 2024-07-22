@@ -21,7 +21,7 @@ on:
 
 env:
   IMAGE: demo-application
-  REGISTRY_HOSTNAME: demodockeracc
+  REGISTRY_HOSTNAME: ${{ secrets.AZURE_URL }}
   # ARGOCD_TOKEN: ${{ secrets.ARGOCD_TOKEN }}
   # REGISTRY_HOSTNAME: 681089424129.dkr.ecr.ap-south-1.amazonaws.com
 
@@ -32,19 +32,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-
       - name: Set up JDK 11
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '11'
-
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
-
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
-
       - name: Build with Gradle
         run: ./gradlew clean build jacocoTestReport
 
@@ -53,40 +49,17 @@ jobs:
       #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       #   run: sonar-scanner
 
-      # - name: Copy Jar file
-      #   run: mv build/libs/$(ls build/libs) app.jar
-
-      # - name: Find and rename JAR file
-      #   run: |
-      #     JAR_FILE=$(find build/libs -name "*.jar" | head -n 1)
-      #     mv "$JAR_FILE" app.jar
-
-      # - name: Upload Jar file
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     name: jar-file
-      #     path: app.jar
-
-      # - name: Download Jar file
-      #   uses: actions/download-artifact@v3
-      #   with:
-      #     name: jar-file
-      #     path: app.jar
-      
       - name: Upload build JAR
         uses: actions/upload-artifact@v2
         with:
           name: build
           path: build
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
         with:
           driver: docker
-
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v4
@@ -95,7 +68,6 @@ jobs:
             ${{ env.REGISTRY_HOSTNAME }}/${{ env.IMAGE }}
           tags: |
             type=sha,enable=true,prefix=,suffix=,format=short
-
       - name: Docker build
         uses: docker/build-push-action@v3
         with:
@@ -127,21 +99,22 @@ jobs:
             ${{ env.REGISTRY_HOSTNAME }}/${{ env.IMAGE }}
           tags: |
             type=sha,enable=true,prefix=,suffix=,format=short
-      # - name: Download Jar file
-      #   uses: actions/download-artifact@v3
-      #   with:
-      #     name: jar-file
-      #     path: .
       - name: Download gradle build result
         uses: actions/download-artifact@v2
         with:
           name: build
           path: build
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
+      # - name: Login to Docker Hub
+      #   uses: docker/login-action@v2
+      #   with:
+      #       username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #       password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: ACR Login
+        uses: azure/docker-login@v1
         with:
-            username: ${{ secrets.DOCKERHUB_USERNAME }}
-            password: ${{ secrets.DOCKERHUB_TOKEN }}
+          login-server: ${{ secrets.AZURE_URL }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
       - name: docker push
         uses: docker/build-push-action@v3
         with:
@@ -149,5 +122,4 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           build-args: |
-            # JAR_FILE=app.jar
             BUILD_DATA_DIR=build/libs
