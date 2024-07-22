@@ -74,9 +74,9 @@ jobs:
           context: .
           push: false
           tags: ${{ steps.meta.outputs.tags }}
-          build-args: |
-            TMDB_V3_API_KEY=${{ secrets.TMDB_V3_API_KEY }}
-          outputs: type=tar,dest=/tmp/${{ env.IMAGE }}.tar
+          # build-args: |
+          #   TMDB_V3_API_KEY=${{ secrets.TMDB_V3_API_KEY }}
+          # outputs: type=tar,dest=/tmp/${{ env.IMAGE }}.tar
 
   Push_Artifact_to_Registry:
     if: (github.ref == 'refs/heads/merge_branch' && github.event_name == 'push') || (github.ref == 'refs/heads/master' && github.event_name == 'push') || (github.ref == 'refs/heads/main' && github.event_name == 'push') || (startsWith(github.ref, 'refs/tags/qa-') && github.event_name == 'push') || (startsWith(github.ref, 'refs/tags/prod-') && github.event_name == 'push')
